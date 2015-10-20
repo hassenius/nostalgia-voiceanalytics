@@ -1,0 +1,64 @@
+#!/bin/bash
+## Roughly based on http://bernaerts.dyndns.org/linux/179-asterisk-voicemail-mp3
+# Asterisk voicemail attachment conversion script
+
+# set PATH
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+# save the current directory
+pushd . 
+# create a temporary directory and cd to it
+TMPDIR=$(mktemp -d)
+cd $TMPDIR
+# dump the stream to a temporary file
+cat >> stream.org
+# get the boundary
+BOUNDARY=`grep "boundary=" stream.org | cut -d'"' -f 2`
+
+# cut the file into parts
+# stream.part - header before the boundary
+# stream.part1 - header after the bounday
+# stream.part2 - body of the message
+# stream.part3 - attachment in base64 (WAV file)
+# stream.part4 - footer of the message
+awk '/'$BOUNDARY'/{i++}{print > "stream.part"i}' stream.org
+
+# if mail is having no audio attachment (plain text)
+PLAINTEXT=`cat stream.part1 | grep 'plain'`
+if [ "$PLAINTEXT" != "" ]
+then
+
+  # Mail does not seem to have an audio attachment. 
+
+  echo "No attachment found" >> status
+  echo "No attachment found"
+  # else, if mail is having audio attachment
+else
+
+  # cut the attachment into parts
+  # stream.part3.head - header of attachment
+  # stream.part3.wav.base64 - wav file of attachment (encoded base64)
+  sed '7,$d' stream.part3 > stream.part3.wav.head
+  sed '1,6d' stream.part3 > stream.part3.wav.base64
+
+  # convert the base64 file to a wav file
+  dos2unix -o stream.part3.wav.base64
+  base64 -di stream.part3.wav.base64 > stream.part3.wav
+
+  # Get the full pathname of the file
+  audiofile=$(readlink -f stream.part3.wav)
+
+  json_data=$(sed -n 's/data=//p' stream.part2)
+
+  to_field=$(sed -n 's/To: //p' stream.part)
+
+  source /home/ibmcloud/backup/vcap_variables.sh
+  shipaudio.py ${audiofile} ${json_data} ${to_field}
+
+fi
+
+# go back to original directory
+popd
+
+# remove all temporary files and temporary directory
+rm -Rf $TMPDIR
+exit 0

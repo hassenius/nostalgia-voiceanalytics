@@ -1,0 +1,44 @@
+---
+applications:
+- name: voicemail.transcribe
+  disk_quota: 1024M
+  buildpack: python_buildpack
+  path: transcribe
+  command: python transcribe2.py
+  memory: 128M
+  instances: 1
+  no-route: true
+  services:
+  - CloudAMQP-voicemaildemo
+  - AudioStorage
+  - SpeechToText
+- name: voicemail.send.tochechu
+  disk_quota: 1024M
+  buildpack: python_buildpack
+  path: send_to_chechu
+  command: python send_to_chechu.py
+  memory: 128M
+  instances: 1
+  no-route: true
+  services:
+  - CloudAMQP-voicemaildemo
+  - AudioStorage
+- name: voicemail.show.all
+  disk_quota: 1024M
+  buildpack: python_buildpack
+  path: show_all_voicemails
+  command: python show_all_voicemails.py
+  memory: 128M
+  instances: 1
+  services:
+  - AudioStorage
+- name: voicemail.show.toneanalysis
+  disk_quota: 1024M
+  buildpack: python_buildpack
+  path: tone_analyzer
+  command: python show_tone.py
+  memory: 128M
+  instances: 1
+  services:
+  - AudioStorage
+  - ToneAnalyzer

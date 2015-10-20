@@ -1,0 +1,119 @@
+#!/usr/bin/env python
+import sys, uuid, os
+import requests, json
+import mimetypes
+import rabbitpy
+from requests.auth import HTTPBasicAuth
+import swiftclient.client as swift_client
+
+# MQ Topic to publish to
+#PUBLISH_TOPIC = 'mqlight/audiodemo/audiofiles'
+PUBLISH_EXCHANGE = 'audiofiles'
+
+# Setup input
+audiofile = str(sys.argv[1])
+d = str(sys.argv[2])
+call_data = json.loads(json.loads(d))
+recepient = call_data['name']
+filename = 'voicemail-' + call_data['messageid']
+
+
+# Setup MQ Client
+
+# Setup Swift Client
+try:
+    import swiftclient.client as swift_client
+except ImportError:
+    import swift.common.client as swift_client
+
+if os.environ.get('VCAP_SERVICES'):
+   vcap_services = os.environ.get('VCAP_SERVICES')
+   decoded = json.loads(vcap_services)['Object Storage'][0]
+   vcap_username = str(decoded['credentials']['username'])
+   vcap_password = str(decoded['credentials']['password'])
+   vcap_auth_url = str(decoded['credentials']['auth_url'])
+
+else:
+  exit("No object storage credentials")
+
+
+# Get real Object Storage credentials
+credentials = requests.get(url=vcap_auth_url, auth=HTTPBasicAuth(vcap_username, vcap_password))
+
+auth_url = credentials.json()['CloudIntegration']['auth_url']
+username = credentials.json()['CloudIntegration']['credentials']['userid']
+password = credentials.json()['CloudIntegration']['credentials']['password']
+swift_url = credentials.json()['CloudIntegration']['swift_url']
+tenant_name = credentials.json()['CloudIntegration']['project']
+
+# Create a new object storage client
+client = swift_client.Connection(auth_url + '/v2.0', username, password, tenant_name=tenant_name, auth_version="2.0")
+
+# Make sure container exists for recepient
+print client.put_container(recepient)
+
+#print client.put_object('manualtest.wav', container='hans', contents=open(audiofile), content_type=mimetypes.guess_type(audiofile)[0] )
+
+# Upload Voicemail to voicemail users container
+with open(audiofile, 'rb') as file:
+    file_data = file.read()
+# client.put_object(recepient, filename, file_data)
+# TODO: Add metadata such as who the call was from, etc
+# {u'name': u'IBM Test', u'callerid': u'+35318562445', u'cidname': u'', u'mailbox': u'101', u'date': u'Monday, October 12, 2015 at 10:56:52 AM', u'cidnum': u'+35318562445', u'messageid': u'20', u'duration': u'0:10'}
+
+payload = {
+  'container': recepient,
+  'object': filename}
+
+# Post the message
+with rabbitpy.Connection('amqp://eovnztng:bPbtTaxd8KvFI5JQVzf8Jc6wtbe662FS@white-swan.rmq.cloudamqp.com/eovnztng') as conn:
+    with conn.channel() as channel:
+
+        # Create the exchange
+        exchange = rabbitpy.Exchange(channel, 'send_audiofiles')
+        exchange.declare()
+
+        # Create the queue
+        queue = rabbitpy.Queue(channel, 'audiofiles')
+        queue.declare()
+
+        # Bind the queue
+        queue.bind(exchange, 'audiofiles')
+
+        # Create and start the transaction
+        tx = rabbitpy.Tx(channel)
+        tx.select()
+
+        # Create the message
+        message = rabbitpy.Message(channel,
+                                  json.dumps(payload),
+                                   {'content_type': 'text/plain',
+                                    'message_type': 'audio file uploaded'})
+
+        # Publish the message
+        message.publish(exchange, 'audiofiles')
+
+        # Commit the message
+        tx.commit()
+
+
+# Setup MQ Client
+#mqclient = mqlight.Client(
+    #service=mqservice,
+    #client_id=CLIENT_ID,
+    #security_options=security_options,
+    #on_started=subscribe)
+    
+## Create message
+#message = {
+  #'container': recepient,
+  #'object': filename}
+
+## Drop a message on the message queue
+#mqclient.send(PUBLISH_TOPIC, json.dumps(message))
+
+
+
+
+
+# export VCAP_SERVICES='{"mqlight": [{"name": "MQ Light-58","label": "mqlight","plan": "standard","credentials": {"nonTLSConnectionLookupURI": "http://mqlightprod-lookup.ng.bluemix.net/Lookup?serviceId=99dc439d-a0b3-414f-b3bc-948440e09f7b","username": "StgN6pG2auKe","connectionLookupURI": "http://mqlightprod-lookup.ng.bluemix.net/Lookup?serviceId=99dc439d-a0b3-414f-b3bc-948440e09f7b&tls=true","password": "hq(zG)Crrb@_","version": "2"}}],"Object Storage": [{"name": "AudioStorage","label": "Object Storage","plan": "Free","credentials": {"auth_url": "https://objectstorage.ng.bluemix.net/auth/263f902d-d579-41c1-9a82-65cb8306734f/34bcef77-5d07-42aa-8c8f-eb498e8b09f3","username": "285f9150f9647c88655b973b446ca1fbbe1ea67f","password": "198bf2bc8242a3195c19530622a6c511e416d3c9b0e0c7ddcf18c380ba9a"}}]}'

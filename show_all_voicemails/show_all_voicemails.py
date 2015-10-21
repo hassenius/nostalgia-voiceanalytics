@@ -8,6 +8,8 @@ import requests
 import swiftclient.client as swift_client
 from flask import Flask
 
+DEBUG_MODE=True
+
 port = int(os.getenv('VCAP_APP_PORT', 8080))
 
 # Setup Swift Client
@@ -17,17 +19,21 @@ except ImportError:
     import swift.common.client as swift_client
 
 if os.environ.get('VCAP_SERVICES'):
-   vcap_services = os.environ.get('VCAP_SERVICES')
-   decoded = json.loads(vcap_services)['Object Storage'][0]
-   vcap_username = str(decoded['credentials']['username'])
-   vcap_password = str(decoded['credentials']['password'])
-   vcap_auth_url = str(decoded['credentials']['auth_url'])
+  if DEBUG_MODE:
+    print 'Loading credentials from VCAP_SERVICES'
+  vcap_services = os.environ.get('VCAP_SERVICES')
+  decoded = json.loads(vcap_services)['Object Storage'][0]
+  vcap_username = str(decoded['credentials']['username'])
+  vcap_password = str(decoded['credentials']['password'])
+  vcap_auth_url = str(decoded['credentials']['auth_url'])
 
 else:
   exit("No object storage credentials")
 
 
 # Get real Object Storage credentials
+if DEBUG_MODE:
+  print 'Getting Keystone credentials for Object Storage'
 credentials = requests.get(url=vcap_auth_url, auth=HTTPBasicAuth(vcap_username, vcap_password))
 
 auth_url = credentials.json()['CloudIntegration']['auth_url']
@@ -35,7 +41,8 @@ username = credentials.json()['CloudIntegration']['credentials']['userid']
 password = credentials.json()['CloudIntegration']['credentials']['password']
 swift_url = credentials.json()['CloudIntegration']['swift_url']
 tenant_name = credentials.json()['CloudIntegration']['project']
-
+if DEBUG_MODE:
+  print '...finished'
 
 # Create a global object storage client
 os_client = swift_client.Connection(auth_url + '/v2.0', username, password, tenant_name=tenant_name, auth_version="2.0")
@@ -48,7 +55,11 @@ def get_object_meta(container, obj):
 #container_list = []
 
 def get_mailboxes():
+  if DEBUG_MODE:
+    print 'Getting mailboxes from object storage'
   mailboxes = []
+  if DEBUG_MODE:
+    print 'Getting container list'
   headers, containers = os_client.get_account()
   for container in containers:
     if container['count'] > 0:
@@ -56,12 +67,16 @@ def get_mailboxes():
       mailbox['name'] = container['name']
       mailbox['voicemails'] = []
       
+      if DEBUG_MODE:
+        print 'Getting list for container %s' % container['name']
       headers, objects = os_client.get_container(container['name'])
       for obj in objects:
         vm_entry = {}
         vm_entry['filename'] = obj['name']
         
         #print 'retrieving %s from %s' % (obj['name'], container['name'])
+        if DEBUG_MODE:
+          print 'Getting metadata for object %s' % obj['name']
         obj_meta = os_client.head_object(container['name'], obj['name'])
         vm_entry['from'] = obj_meta.get('x-object-meta-calldata-cidnum', 'Unknown')
         vm_entry['duration'] = obj_meta.get('x-object-meta-calldata-duration', 'Unknown')
@@ -83,10 +98,15 @@ def get_mailboxes():
         
       mailboxes.append(mailbox)
   
+  if DEBUG_MODE:
+    print 'Returning mailboxes'
+  
   return mailboxes
 
   
 def print_mailboxestable():
+  if DEBUG_MODE:
+    print 'Creating mailbox table'
   mailboxes = get_mailboxes()
   text = '<html><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">' 
   text += '<h1>MailBoxes</h1>'
@@ -100,6 +120,8 @@ def print_mailboxestable():
       
   text += '</tbody></table></p></html>'
   
+  if DEBUG_MODE:
+    print 'Finished creating mailbox table'
   return text
 
 

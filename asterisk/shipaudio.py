@@ -68,6 +68,9 @@ recepient = call_data['mailbox']
 filename = 'voicemail-' + call_data['messageid']
 mail_to = str(sys.argv[3])
 
+# Make sure container exists for recepient
+client.put_container(recepient)
+
 
 
 # Upload Voicemail to voicemail users container

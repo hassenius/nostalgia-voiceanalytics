@@ -2,7 +2,6 @@
 # Standard modules
 import os, json
 # Special modules requiring installation
-#import bottle
 from requests.auth import HTTPBasicAuth
 from flask import Flask
 
@@ -26,7 +25,7 @@ def get_mailboxes():
     print 'Getting container list'
   headers, containers = get_account()
   for container in containers:
-    if container['count'] > 0:
+    if head_container(container)['x-container-object-count'] > 0
       mailbox={}
       mailbox['name'] = container['name']
       mailbox['voicemails'] = []

@@ -1,3 +1,4 @@
+import os, json
 import requests
 import swiftclient.client as swift_client
 
@@ -75,6 +76,19 @@ def get_account():
     headers, containers = os_client.get_account()
     
   return (headers, containers)
+
+def head_container(name):
+  global token, os_endpoint, os_client
+  try:
+    headers = os_client.head_container(name)
+  except (OpenSSL.SSL.SysCallError, swiftclient.exceptions.ClientException) as e:
+    # Try to re-authenticate
+    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
+    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    headers = os_client.head_container(name)
+    
+  return headers
+  
     
 def get_container(name):
   global token, os_endpoint, os_client

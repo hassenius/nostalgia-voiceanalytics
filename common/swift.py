@@ -1,6 +1,5 @@
 import os, json
 import requests
-import swiftclient.client as swift_client
 
 # Make sure debug is set
 if not 'DEBUG_MODE' in globals():
@@ -55,7 +54,7 @@ def head_object(container, obj):
   global token, os_endpoint, os_client
   try:
     meta = os_client.head_object(container, obj)
-  except (OpenSSL.SSL.SysCallError, swiftclient.exceptions.ClientException) as e:
+  except swift_client.ClientException as e:
     # Try to re-authenticate
     
     token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
@@ -69,7 +68,7 @@ def get_account():
   global token, os_endpoint, os_client
   try:
     headers, containers = os_client.get_account()
-  except (OpenSSL.SSL.SysCallError, swiftclient.exceptions.ClientException) as e:
+  except swift_client.ClientException as e:
     # Try to re-authenticate
     token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
     os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
@@ -81,7 +80,7 @@ def head_container(name):
   global token, os_endpoint, os_client
   try:
     headers = os_client.head_container(name)
-  except (OpenSSL.SSL.SysCallError, swiftclient.exceptions.ClientException) as e:
+  except swift_client.ClientException as e:
     # Try to re-authenticate
     token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
     os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
@@ -94,10 +93,52 @@ def get_container(name):
   global token, os_endpoint, os_client
   try:
     headers, objects = os_client.get_container(name)
-  except (OpenSSL.SSL.SysCallError, swiftclient.exceptions.ClientException) as e:
+  except swift_client.ClientException as e:
     # Try to re-authenticate
     token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
     os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
     headers, objects = os_client.get_container(name)
     
   return (headers, objects)
+
+def add_object_metadata(container, obj, existing_headers, meta_key, meta_value):
+  new_headers = {}
+  
+    # Save existing headers
+  for key in existing_headers:
+    if key.startswith('x-object-meta-'):
+      new_headers[key] = existing_headers[key]
+  
+  # Max length of metadata is 256 bytes. If longer, split up    
+  if len(meta_value) > 256:
+    meta_parts = list(map(''.join, zip(*[iter(meta_value)]*256)))
+    for i in range(0,len(meta_parts)):
+      new_headers['x-object-meta-%s-%i' % (meta_key, int(i) + 1)] = meta_parts[int(i)]
+  else:
+    new_headers['x-object-meta-%s' % meta_key] = meta_value
+  
+  # Post headers, reconnect if token is expired
+  try:
+    os_client.post_object(container, obj, new_headers)
+  except swift_client.ClientException as e:
+    # Try to re-authenticate
+    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
+    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    os_client.post_object(container, obj, new_headers)
+
+  return True
+
+
+def get_object(container, obj):
+  global token, os_endpoint, os_client
+  
+  try:
+    headers, content = os_client.get_object(container, obj)
+  except swift_client.ClientException as e:
+    # Try to re-authenticate
+    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
+    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    headers, content = os_client.get_object(container, obj)
+  return (headers, content)
+  
+  

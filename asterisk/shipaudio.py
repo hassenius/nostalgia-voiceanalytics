@@ -72,7 +72,6 @@ mail_to = str(sys.argv[3])
 client.put_container(recepient)
 
 
-
 # Upload Voicemail to voicemail users container
 with open(audiofile, 'rb') as file:
     file_data = file.read()

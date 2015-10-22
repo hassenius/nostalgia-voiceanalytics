@@ -25,7 +25,7 @@ def get_mailboxes():
     print 'Getting container list'
   headers, containers = get_account()
   for container in containers:
-    if head_container(container)['x-container-object-count'] > 0
+    if head_container(container)['x-container-object-count'] > 0:
       mailbox={}
       mailbox['name'] = container['name']
       mailbox['voicemails'] = []

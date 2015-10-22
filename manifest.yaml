@@ -10,7 +10,7 @@ applications:
   no-route: true
   services:
   - CloudAMQP-voicemaildemo
-  - AudioStorage
+  - AudioStorage2
   - SpeechToText
 - name: voicemail.send.tochechu
   disk_quota: 1024M
@@ -22,7 +22,7 @@ applications:
   no-route: true
   services:
   - CloudAMQP-voicemaildemo
-  - AudioStorage
+  - AudioStorage2
 - name: voicemail.show.all
   disk_quota: 1024M
   buildpack: python_buildpack
@@ -31,7 +31,7 @@ applications:
   memory: 128M
   instances: 1
   services:
-  - AudioStorage
+  - AudioStorage2
 - name: voicemail.show.toneanalysis
   disk_quota: 1024M
   buildpack: python_buildpack
@@ -40,5 +40,5 @@ applications:
   memory: 128M
   instances: 1
   services:
-  - AudioStorage
+  - AudioStorage2
   - ToneAnalyzer

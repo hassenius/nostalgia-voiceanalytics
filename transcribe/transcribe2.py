@@ -8,6 +8,8 @@ import requests
 from requests.auth import HTTPBasicAuth
 import swiftclient.client as swift_client
 
+execfile('swift.py')
+
 EXCHANGE = 'audio_demo'
 QUEUE = 'audiofiles'
 ROUTING_KEY = 'audiofiles'
@@ -24,18 +26,6 @@ LOGGER.info('Starting application')
 
 if os.environ.get('VCAP_SERVICES'):
    vcap_services = os.environ.get('VCAP_SERVICES')
-   # Get Object Storage Credentials
-   decoded = json.loads(vcap_services)['Object Storage'][0]
-   vcap_username = str(decoded['credentials']['username'])
-   vcap_password = str(decoded['credentials']['password'])
-   vcap_auth_url = str(decoded['credentials']['auth_url'])
-   credentials = requests.get(url=vcap_auth_url, auth=HTTPBasicAuth(vcap_username, vcap_password))
-   os_auth_url = credentials.json()['CloudIntegration']['auth_url']
-   os_username = credentials.json()['CloudIntegration']['credentials']['userid']
-   os_password = credentials.json()['CloudIntegration']['credentials']['password']
-   swift_url = credentials.json()['CloudIntegration']['swift_url']
-   os_tenant_name = credentials.json()['CloudIntegration']['project']
-
    
    # Speech to text credentials
    decoded = json.loads(vcap_services)['speech_to_text'][0]
@@ -67,30 +57,6 @@ def transcribe_audio(data):
   return text
 
 
-def add_object_metadata(container, obj, existing_headers, meta_key, meta_value):
-  LOGGER.info('')
-  new_headers = {}
-  
-    # Save existing headers
-  for key in existing_headers:
-    if key.startswith('x-object-meta-'):
-      new_headers[key] = existing_headers[key]
-  
-  # Max length of metadata is 256 bytes. If longer, split up    
-  if len(meta_value) > 256:
-    meta_parts = list(map(''.join, zip(*[iter(meta_value)]*256)))
-    for i in range(0,len(meta_parts)):
-      new_headers['x-object-meta-%s-%i' % (meta_key, int(i) + 1)] = meta_parts[int(i)]
-  else:
-    new_headers['x-object-meta-%s' % meta_key] = meta_value
-  
-  os_client.post_object(container, obj, new_headers)
-  return True
-
-
-# Create a global object Storage Client
-os_client = swift_client.Connection(os_auth_url + '/v2.0', os_username, os_password, tenant_name=os_tenant_name, auth_version="2.0")
-
 ## Create a connection to Message Queue
 for i in range(0,100):
     try:
@@ -118,7 +84,7 @@ def callback(ch, method, properties, body):
   obj = file_details['object']
 
   # load the file
-  headers, audio = os_client.get_object(container, obj)
+  headers, audio = get_object(container, obj)
 
   # Transcribe the audio
   text = transcribe_audio(audio)

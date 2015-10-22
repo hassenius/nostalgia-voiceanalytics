@@ -5,10 +5,13 @@ import os, json
 #import bottle
 from requests.auth import HTTPBasicAuth
 import requests
-import swiftclient.client as swift_client
 from flask import Flask
 
+execfile('swift.py')
+
 port = int(os.getenv('VCAP_APP_PORT', 8080))
+
+DEBUG_MODE=True
 
 # Setup Swift Client
 try:
@@ -17,11 +20,9 @@ except ImportError:
     import swift.common.client as swift_client
 
 if os.environ.get('VCAP_SERVICES'):
+   if DEBUG_MODE:
+     print 'Loading credentials from VCAP_SERVICES'
    vcap_services = os.environ.get('VCAP_SERVICES')
-   decoded = json.loads(vcap_services)['Object Storage'][0]
-   vcap_username = str(decoded['credentials']['username'])
-   vcap_password = str(decoded['credentials']['password'])
-   vcap_auth_url = str(decoded['credentials']['auth_url'])
 
    # Tone Analyzer Credentials
    decoded = json.loads(vcap_services)['tone_analyzer'][0]
@@ -30,45 +31,25 @@ if os.environ.get('VCAP_SERVICES'):
    st_password = str(decoded['credentials']['password'])
    
 else:
-  exit("No object storage credentials")
+  exit("VCAP_SERVICES")
 
-
-# Get real Object Storage credentials
-credentials = requests.get(url=vcap_auth_url, auth=HTTPBasicAuth(vcap_username, vcap_password))
-
-auth_url = credentials.json()['CloudIntegration']['auth_url']
-username = credentials.json()['CloudIntegration']['credentials']['userid']
-password = credentials.json()['CloudIntegration']['credentials']['password']
-swift_url = credentials.json()['CloudIntegration']['swift_url']
-tenant_name = credentials.json()['CloudIntegration']['project']
-
-
-# Create a global object storage client
-os_client = swift_client.Connection(auth_url + '/v2.0', username, password, tenant_name=tenant_name, auth_version="2.0")
-
-def get_object_meta(container, obj):
-  os_client.head_object(container, obj)
-
-
-# Get a list of containers that has some content
-#container_list = []
 
 def get_mailboxes():
   mailboxes = []
-  headers, containers = os_client.get_account()
+  headers, containers = get_account()
   for container in containers:
-    if container['count'] > 0:
+    if head_container(container['name'])['x-container-object-count'] > 0:
       mailbox={}
       mailbox['name'] = container['name']
       mailbox['voicemails'] = []
       
-      headers, objects = os_client.get_container(container['name'])
+      headers, objects = get_container(container['name'])
       for obj in objects:
         vm_entry = {}
         vm_entry['filename'] = obj['name']
         
         #print 'retrieving %s from %s' % (obj['name'], container['name'])
-        obj_meta = os_client.head_object(container['name'], obj['name'])
+        obj_meta = head_object(container['name'], obj['name'])
         vm_entry['from'] = obj_meta.get('x-object-meta-calldata-cidnum', 'Unknown')
         vm_entry['duration'] = obj_meta.get('x-object-meta-calldata-duration', 'Unknown')
         vm_entry['messageid'] = obj_meta.get('x-object-meta-calldata-messageid', 'Unknown')

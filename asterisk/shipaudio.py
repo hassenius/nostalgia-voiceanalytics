@@ -6,11 +6,59 @@ import rabbitpy
 from requests.auth import HTTPBasicAuth
 import swiftclient.client as swift_client
 
+# Make sure debug is set
+if not 'DEBUG_MODE' in globals():
+  DEBUG_MODE=False
+
 # MQ Topic to publish to
 #PUBLISH_TOPIC = 'mqlight/audiodemo/audiofiles'
 EXCHANGE = 'audio_demo'
 QUEUE = 'audiofiles'
 ROUTING_KEY = 'audiofiles'
+
+# Setup Swift Client
+try:
+    import swiftclient.client as swift_client
+except ImportError:
+    import swift.common.client as swift_client
+
+if os.environ.get('VCAP_SERVICES'):
+  if DEBUG_MODE:
+    print 'Getting Object Storage Credentials'
+  vcap_services = os.environ.get('VCAP_SERVICES')
+  decoded = json.loads(vcap_services)['Object-Storage'][0]
+  userid = str(decoded['credentials']['userId'])
+  password = str(decoded['credentials']['password'])
+  auth_url = str(decoded['credentials']['auth_url'])
+  project_id = str(decoded['credentials']['projectId'])
+  region = str(decoded['credentials']['region'])
+
+else:
+  exit("No object storage credentials")
+if DEBUG_MODE:
+  print '...finished'
+  
+
+def get_token_and_endpoint(authurl, projectid, userid, password, region, endpoint_type='publicURL'):
+  data={"auth": {"tenantId": projectid, "passwordCredentials": {"userId":  userid, "password": password} } }
+  r = requests.post(authurl + '/v2.0/tokens', data=json.dumps(data), headers={"Content-Type": "application/json"})
+  if r.status_code != 200:
+    print 'Something went wrong while getting token'
+    print 'Status code: %s and status text: " %s "'  % (r.status_code, r.text)
+  
+  token = r.json()['access']['token']['id']
+  for service in r.json()['access']['serviceCatalog']:
+    if service['type'] == 'object-store':
+      for endpoint in service['endpoints']:
+        if endpoint['region'] == region:
+          os_endpoint = endpoint[endpoint_type]
+    
+  return (token, os_endpoint)
+
+token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
+
+# Create a global object storage client
+client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
 
 # Setup input
 audiofile = str(sys.argv[1])
@@ -20,39 +68,6 @@ recepient = call_data['mailbox']
 filename = 'voicemail-' + call_data['messageid']
 mail_to = str(sys.argv[3])
 
-
-
-# Setup Swift Client
-try:
-    import swiftclient.client as swift_client
-except ImportError:
-    import swift.common.client as swift_client
-
-if os.environ.get('VCAP_SERVICES'):
-   vcap_services = os.environ.get('VCAP_SERVICES')
-   decoded = json.loads(vcap_services)['Object Storage'][0]
-   vcap_username = str(decoded['credentials']['username'])
-   vcap_password = str(decoded['credentials']['password'])
-   vcap_auth_url = str(decoded['credentials']['auth_url'])
-
-else:
-  exit("No object storage credentials")
-
-
-# Get real Object Storage credentials
-credentials = requests.get(url=vcap_auth_url, auth=HTTPBasicAuth(vcap_username, vcap_password))
-
-auth_url = credentials.json()['CloudIntegration']['auth_url']
-username = credentials.json()['CloudIntegration']['credentials']['userid']
-password = credentials.json()['CloudIntegration']['credentials']['password']
-swift_url = credentials.json()['CloudIntegration']['swift_url']
-tenant_name = credentials.json()['CloudIntegration']['project']
-
-# Create a new object storage client
-client = swift_client.Connection(auth_url + '/v2.0', username, password, tenant_name=tenant_name, auth_version="2.0")
-
-# Make sure container exists for recepient
-client.put_container(recepient)
 
 
 # Upload Voicemail to voicemail users container

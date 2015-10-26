@@ -53,7 +53,7 @@ def transcribe_audio(data):
   text = ""
   
   for result in results.json()['results']:
-    text += result['alternatives'][0]['transcript']
+    text += result['alternatives'][0]['transcript'].replace('%HESITATION ', '')
 
   return text
 

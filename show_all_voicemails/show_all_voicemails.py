@@ -4,7 +4,7 @@ import os, json
 # Special modules requiring installation
 from requests.auth import HTTPBasicAuth
 from flask import Flask
-from flask import request, send_from_directory, url_for, redirect
+from flask import request, send_from_directory, redirect
 
 DEBUG_MODE=True
 

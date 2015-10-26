@@ -102,6 +102,7 @@ def get_container(name):
   return (headers, objects)
 
 def add_object_metadata(container, obj, existing_headers, meta_key, meta_value):
+  global token, os_endpoint, os_client
   new_headers = {}
   
     # Save existing headers

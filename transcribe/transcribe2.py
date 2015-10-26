@@ -16,6 +16,7 @@ ROUTING_KEY = 'audiofiles'
 
 PUBLISH_EXCHANGE = 'audio_demo'
 PUBLISH_ROUTING_KEY = 'transcripts'
+WORKER_NAME='transcribe2.py'
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -105,7 +106,8 @@ def callback(ch, method, properties, body):
 
 channel.basic_consume(callback,
                       queue=QUEUE,
-                      no_ack=True)
+                      no_ack=True,
+                      consumer_tag=WORKER_NAME)
 
 try:
     channel.start_consuming()

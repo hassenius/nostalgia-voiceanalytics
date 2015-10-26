@@ -4,6 +4,7 @@ import os, json
 # Special modules requiring installation
 from requests.auth import HTTPBasicAuth
 from flask import Flask
+from flask import request, send_from_directory, url_for, redirect
 
 DEBUG_MODE=True
 
@@ -36,7 +37,8 @@ def get_mailboxes():
       for obj in objects:
         vm_entry = {}
         vm_entry['filename'] = obj['name']
-        
+        vm_entry['owner'] = container['name']
+                
         #print 'retrieving %s from %s' % (obj['name'], container['name'])
         if DEBUG_MODE:
           print 'Getting metadata for object %s' % obj['name']
@@ -55,7 +57,7 @@ def get_mailboxes():
             vm_entry['transcript'] += obj_meta.get('x-object-meta-calldata-transcript-%i' % i)
             i += 1
         else:
-          vm_entry['transcript'] = 'Unknown'
+          vm_entry['transcript'] = 'Transcribing - Refresh page to see updates...'
         
         mailbox['voicemails'].append(vm_entry)
         
@@ -73,13 +75,18 @@ def print_mailboxestable():
   mailboxes = get_mailboxes()
   text = '<html><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">' 
   text += '<h1>MailBoxes</h1>'
+  #text += '<form method="post" action="/modify">'
   text += '<p><table class="table table-striped" padding="5">'
-  text += '<thead><tr><th>messageid</th><th>From</th><th>Time</th><th>Duration</th><th>Transcript</th></tr></thead>'
+  text += '<thead><tr><th>messageid</th><th>From</th><th>Time</th><th>Duration</th><th>Delete</th><th>Transcript</th></tr></thead>'
   text += '<tbody>'
   for mailbox in mailboxes:
     text += '<tr><td colspan="5"><h3><br /><br />Entries for mailbox ' + mailbox['name'] + '</h3></td></tr>'
     for message in mailbox['voicemails']:
-      text += '<tr><th scope="row">%(messageid)s</th><td>%(from)s</td><td>%(time)s</td><td>%(duration)s</td><td>%(transcript)s</td></tr>' % message
+      text += '<tr><th scope="row">%(messageid)s</th> \
+      <td>%(from)s</td><td>%(time)s</td> \
+      <td>%(duration)s</td> \
+      <td><form action="/modify" method="post"><input type="hidden" name="owner" value="%(owner)s" /><input type="hidden" name="filename" value="%(filename)s" /> <input type="image" src="/static/trash-300px.png" alt="Submit" width="30" height="30"></form></td> \
+      <td>%(transcript)s</td></tr>' % message
       
   text += '</tbody></table></p></html>'
   
@@ -88,17 +95,30 @@ def print_mailboxestable():
   return text
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path="/static")
 
 @app.route("/")
 def print_mailboxes():
   return print_mailboxestable()
   
+@app.route("/modify", methods=['POST'])
+def modify():
+  if request.method == "POST":
+    obj = request.form['filename']
+    container = request.form['owner']
+    print "wanted to delete %s from %s" % (obj, container)
+    delete_object(container, obj)
+  return redirect('/')
+
+@app.route("/justfortest")
+def testing():
+  return "<html>This is really really just a test</html>"
   
 @app.route("/hello")
 def print_hello():
   return get_mailboxes()
   
+
 
 app.run(host='0.0.0.0', port=port)
 

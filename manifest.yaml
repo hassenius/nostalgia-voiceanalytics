@@ -1,11 +1,11 @@
 ---
 applications:
 - name: voicemail.transcribe
-  disk_quota: 1024M
+  disk_quota: 512M
   buildpack: python_buildpack
   path: transcribe
   command: python transcribe2.py
-  memory: 128M
+  memory: 96M
   instances: 1
   no-route: true
   services:
@@ -13,11 +13,11 @@ applications:
   - AudioStorage2
   - SpeechToText
 - name: voicemail.send.tochechu
-  disk_quota: 1024M
+  disk_quota: 512M
   buildpack: python_buildpack
   path: send_to_chechu
   command: python send_to_chechu.py
-  memory: 128M
+  memory: 64M
   instances: 1
   no-route: true
   services:

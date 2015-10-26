@@ -6,6 +6,7 @@ import os, json
 from requests.auth import HTTPBasicAuth
 import requests
 from flask import Flask
+from flask import request, send_from_directory, redirect
 
 execfile('swift.py')
 
@@ -41,6 +42,7 @@ def get_mailboxes():
       for obj in objects:
         vm_entry = {}
         vm_entry['filename'] = obj['name']
+        vm_entry['owner'] = container['name']
         
         #print 'retrieving %s from %s' % (obj['name'], container['name'])
         obj_meta = head_object(container['name'], obj['name'])
@@ -58,7 +60,7 @@ def get_mailboxes():
             vm_entry['transcript'] += obj_meta.get('x-object-meta-calldata-transcript-%i' % i)
             i += 1
         else:
-          vm_entry['transcript'] = 'Unknown'
+          vm_entry['transcript'] = 'Waiting for transcript - Refresh page to see updates...'
         
         mailbox['voicemails'].append(vm_entry)
         
@@ -85,13 +87,16 @@ def print_mailboxestable():
   text = '<html><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">' 
   text += '<h1>MailBoxes</h1>'
   text += '<p><table class="table table-striped" padding="5">'
-  text += '<thead><tr><th>ID</th><th>From</th><th>Transcript</th><th>Tone Analysis</th></tr></thead>'
+  text += '<thead><tr><th>ID</th><th>From</th><th>Delete</th><th>Transcript</th><th>Tone Analysis</th></tr></thead>'
   text += '<tbody>'
   for mailbox in mailboxes:
     text += '<tr><td colspan="5"><h3><br /><br />Entries for mailbox ' + mailbox['name'] + '</h3></td></tr>'
     for message in mailbox['voicemails']:
       tone_analyse = do_analyse(message['transcript'])
-      text += '<tr><th scope="row">%(messageid)s</th><td>%(from)s</td><td>%(transcript)s</td>' % message
+      text += '<tr><th scope="row">%(messageid)s</th> \
+        <td>%(from)s</td> \
+        <td><form action="/modify" method="post"><input type="hidden" name="owner" value="%(owner)s" /><input type="hidden" name="filename" value="%(filename)s" /> <input type="image" src="/static/trash-300px.png" alt="Submit" width="30" height="30"></form></td> \
+        <td>%(transcript)s</td>' % message
       text += '<td>'
       for key, emotion in tone_analyse.iteritems():
         text += emotion['name'] + ': ' + str(int(float(emotion['score']) * 100)) + '% <br />'
@@ -104,7 +109,7 @@ def print_mailboxestable():
   return text
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path="/static")
 
 @app.route("/")
 def print_mailboxes():
@@ -115,6 +120,14 @@ def print_mailboxes():
 def print_hello():
   return get_mailboxes()
   
+@app.route("/modify", methods=['POST'])
+def modify():
+  if request.method == "POST":
+    obj = request.form['filename']
+    container = request.form['owner']
+    print "wanted to delete %s from %s" % (obj, container)
+    delete_object(container, obj)
+  return redirect('/')
 
 app.run(host='0.0.0.0', port=port)
 

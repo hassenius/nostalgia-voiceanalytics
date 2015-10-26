@@ -102,6 +102,7 @@ def get_container(name):
   return (headers, objects)
 
 def add_object_metadata(container, obj, existing_headers, meta_key, meta_value):
+  global token, os_endpoint, os_client
   new_headers = {}
   
     # Save existing headers
@@ -141,4 +142,12 @@ def get_object(container, obj):
     headers, content = os_client.get_object(container, obj)
   return (headers, content)
   
-  
+def delete_object(container, obj):
+  global token, os_endpoint, os_client  
+  try:
+    os_client.delete_object(container, obj)
+  except swift_client.ClientException as e:
+    # Try to re-authenticate
+    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
+    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    os_client.delete_object(container, obj)

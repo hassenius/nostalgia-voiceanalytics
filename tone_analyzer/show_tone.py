@@ -13,12 +13,6 @@ port = int(os.getenv('VCAP_APP_PORT', 8080))
 
 DEBUG_MODE=True
 
-# Setup Swift Client
-try:
-    import swiftclient.client as swift_client
-except ImportError:
-    import swift.common.client as swift_client
-
 if os.environ.get('VCAP_SERVICES'):
    if DEBUG_MODE:
      print 'Loading credentials from VCAP_SERVICES'

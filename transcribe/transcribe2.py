@@ -8,6 +8,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 import swiftclient.client as swift_client
 
+DEBUG_MODE=True
 execfile('swift.py')
 
 EXCHANGE = 'audio_demo'
@@ -21,7 +22,7 @@ WORKER_NAME='transcribe2.py'
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
 
 LOGGER.info('Starting application')
 
@@ -43,12 +44,15 @@ else:
 
 def transcribe_audio(data):
   LOGGER.info('')
+  LOGGER.debug('Preparing to call watson API')
   #audiofile = str(sys.argv[1])
   url = st_url + '/v1/recognize?continuous=true&model=en-US_NarrowbandModel'
   # url = st_url + '/v1/recognize?continuous=true&model=en-US_NarrowbandModel&max_alternatives=3'
   # url = 'https://stream.watsonplatform.net/speech-to-text/api/v1/recognize?continuous=true&model=en-US_NarrowbandModel'
   # data = open(audiofile, 'rb').read()
   results = requests.post(url=url, data=data, auth=(st_username, st_password), headers={'Content-Type': 'audio/wav'})
+  LOGGER.debug('Watson API returned status code %s ' % results.status_code )
+  LOGGER.debug('Watson API returned the text %s ' % results.text )
   # results = requests.post(url=url, data=data, auth=(st_username, st_password), headers={'Content-Type': 'audio/l16; rate=8000; channels=1'})
   text = ""
   
@@ -85,12 +89,16 @@ def callback(ch, method, properties, body):
   obj = file_details['object']
 
   # load the file
+  LOGGER.debug('Calling get_object for container %s and object %s' % (container, obj) )
   headers, audio = get_object(container, obj)
 
   # Transcribe the audio
+  LOGGER.debug('Calling transcribe function')
   text = transcribe_audio(audio)
-
+  LOGGER.debug('Received text from transcribe function: %s' % text)
+  
   # Update the metadata for the object with the transcribed text
+  LOGGER.debug('Calling add_object_meta function to update calldata-transcript metadata')
   add_object_metadata(container, obj, headers, 'calldata-transcript', text)
 
   # Build the message body
@@ -99,6 +107,7 @@ def callback(ch, method, properties, body):
   # Send a message to the next component
   LOGGER.info('Preparing to send message %s to exchange %s with routing key %s' % (json.dumps(file_details), PUBLISH_EXCHANGE, PUBLISH_ROUTING_KEY ) )
   ch.basic_publish(exchange=PUBLISH_EXCHANGE, routing_key=PUBLISH_ROUTING_KEY, body=json.dumps(file_details))
+  LOGGER.debug('Finished sending message')
 
   #print " [x] %r:%r" % (method.routing_key, body,)
 

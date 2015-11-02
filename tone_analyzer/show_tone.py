@@ -92,7 +92,7 @@ def print_mailboxestable():
   for mailbox in mailboxes:
     text += '<p><h3>Entries for mailbox ' + mailbox['name'] + '</h3></p>'
     text += '<p><table class="table table-striped" padding="5">'
-    text += '<thead><tr><th>ID</th><th>From</th><th>Time</th><th>Duration</th><th>Delete</th><th>Transcript</th></tr></thead>'
+    text += '<thead><tr><th>ID</th><th>From</th><th>Time</th><th>Duration</th><th>Actions</th><th>Transcript</th></tr></thead>'
     text += '<tbody>'
     for message in mailbox['voicemails']:
       tone_analyse = do_analyse(message['transcript'], return_raw = True)
@@ -102,7 +102,9 @@ def print_mailboxestable():
         <td>%(duration)s</td>\
         <td> \
           <form action="/modify" method="post"><input type="hidden" name="owner" value="%(owner)s" /><input type="hidden" name="filename" value="%(filename)s" /> <input type="image" src="/static/trash-300px.png" alt="Submit" width="30" height="30"></form> \
-          <audio controls preload="none"> <source src="/audio/%(owner)s/%(filename)s" type="audio/wav" preload="none"> </audio> \
+          <audio id="player-%(filename)s" preload="none"> <source src="/audio/%(owner)s/%(filename)s" type="audio/wav" preload="none"> </audio> \
+          <input type="image" src="/static/Play-Icon-300px.png" onclick="document.getElementById(\'player-%(filename)s\').play()" alt="Play" width="30" height="30"> \
+          <input type="image" src="/static/pause-300px.png" onclick="document.getElementById(\'player-%(filename)s\').pause()" alt="Pause" width="30" height="30"> \
         </td> \
         <td><table width="100%%"><tr><td colspan="3">%(transcript)s</td></tr><tr><td colspan="3"><hr /></td></tr>' % message
 #        

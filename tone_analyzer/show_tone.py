@@ -69,37 +69,51 @@ def get_mailboxes():
   return mailboxes
 
 
-def do_analyse(text):
+def do_analyse(text, return_raw = False):
   response = requests.post(url=st_url + '/v1/tone', auth=HTTPBasicAuth(st_username, st_password), data=json.dumps({"scorecard":"email","text":text}), headers={"content-type": "application/json"})
   #response = requests.get(url=st_url + '/v1/tone?scorecard=email&text=justtesting', auth=HTTPBasicAuth(st_username, st_password))
   #return response.json())
-  answer = {}
-  for tone in response.json()['children']:
-    for spec in tone['children']:
-      answer[spec['id']] = {}
-      answer[spec['id']]['name'] = spec['name']
-      answer[spec['id']]['score'] = spec['normalized_score']
-      
-  return answer
+  if return_raw:
+    return response.json()
+  else:
+    answer = {}
+    for tone in response.json()['children']:
+      for spec in tone['children']:
+        answer[spec['id']] = {}
+        answer[spec['id']]['name'] = spec['name']
+        answer[spec['id']]['score'] = spec['normalized_score']
+        
+    return answer
   
 def print_mailboxestable():
   mailboxes = get_mailboxes()
   text = '<html><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">' 
-  text += '<h1>MailBoxes</h1>'
-  text += '<p><table class="table table-striped" padding="5">'
-  text += '<thead><tr><th>ID</th><th>From</th><th>Delete</th><th>Transcript</th><th>Tone Analysis</th></tr></thead>'
-  text += '<tbody>'
+  text += '<h1>MailBoxes</h1><br />'
   for mailbox in mailboxes:
-    text += '<tr><td colspan="5"><h3><br /><br />Entries for mailbox ' + mailbox['name'] + '</h3></td></tr>'
+    text += '<p><h3>Entries for mailbox ' + mailbox['name'] + '</h3></p>'
+    text += '<p><table class="table table-striped" padding="5">'
+    text += '<thead><tr><th>ID</th><th>From</th><th>Time</th><th>Duration</th><th>Delete</th><th>Transcript</th></tr></thead>'
+    text += '<tbody>'
     for message in mailbox['voicemails']:
-      tone_analyse = do_analyse(message['transcript'])
+      tone_analyse = do_analyse(message['transcript'], return_raw = True)
       text += '<tr><th scope="row">%(messageid)s</th> \
         <td>%(from)s</td> \
+        <td>%(time)s</td> \
+        <td>%(duration)s</td>\
         <td><form action="/modify" method="post"><input type="hidden" name="owner" value="%(owner)s" /><input type="hidden" name="filename" value="%(filename)s" /> <input type="image" src="/static/trash-300px.png" alt="Submit" width="30" height="30"></form></td> \
-        <td>%(transcript)s</td>' % message
-      text += '<td>'
-      for key, emotion in tone_analyse.iteritems():
-        text += emotion['name'] + ': ' + str(int(float(emotion['score']) * 100)) + '% <br />'
+        <td><table width="100%%"><tr><td colspan="3">%(transcript)s</td></tr><tr><td colspan="3"><hr /></td></tr>' % message
+#        
+#        ' % message 
+#      text += '
+      # This is table in row
+      for tone in tone_analyse['children']:
+        text += '<tr>'
+        for spec in tone['children']:
+          #text += '<tr><th scope="row">%s</th><' % tone['name']
+          text += '<td>%s: %s%%</td>' % (spec['name'], str(int(float(spec['normalized_score']) * 100)))
+        text += '</tr>'
+      # This ends table in row
+      text += '</table>'
       text += '</td></tr>'
 
       # print '%s: %i <br />' % (emotion['name'], float(emotion['score']) * 100)

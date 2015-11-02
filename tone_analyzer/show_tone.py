@@ -6,7 +6,7 @@ import os, json
 from requests.auth import HTTPBasicAuth
 import requests
 from flask import Flask
-from flask import request, send_from_directory, redirect
+from flask import request, send_from_directory, redirect, Response
 
 execfile('swift.py')
 
@@ -100,7 +100,10 @@ def print_mailboxestable():
         <td>%(from)s</td> \
         <td>%(time)s</td> \
         <td>%(duration)s</td>\
-        <td><form action="/modify" method="post"><input type="hidden" name="owner" value="%(owner)s" /><input type="hidden" name="filename" value="%(filename)s" /> <input type="image" src="/static/trash-300px.png" alt="Submit" width="30" height="30"></form></td> \
+        <td> \
+          <form action="/modify" method="post"><input type="hidden" name="owner" value="%(owner)s" /><input type="hidden" name="filename" value="%(filename)s" /> <input type="image" src="/static/trash-300px.png" alt="Submit" width="30" height="30"></form> \
+          <audio controls preload="none"> <source src="/audio/%(owner)s/%(filename)s" type="audio/wav" preload="none"> </audio> \
+        </td> \
         <td><table width="100%%"><tr><td colspan="3">%(transcript)s</td></tr><tr><td colspan="3"><hr /></td></tr>' % message
 #        
 #        ' % message 
@@ -143,8 +146,12 @@ def modify():
     delete_object(container, obj)
   return redirect('/')
 
-app.run(host='0.0.0.0', port=port)
+@app.route("/audio/<owner>/<filename>")
+def play_audio(owner, filename):
+  headers, audio = get_object(owner, filename)
+  return Response(audio, mimetype='audio/wav')
 
+app.run(host='0.0.0.0', port=port)  
 ## Desired end result:
 #Mailboxes:
 

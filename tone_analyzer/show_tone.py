@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # Standard modules
 import os, json
+import logging
+from timeit import default_timer as timer
 # Special modules requiring installation
 #import bottle
 from requests.auth import HTTPBasicAuth
@@ -13,6 +15,13 @@ execfile('swift.py')
 port = int(os.getenv('VCAP_APP_PORT', 8080))
 
 DEBUG_MODE=True
+
+LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
+              '-35s %(lineno) -5d: %(message)s')
+LOGGER = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
+
+LOGGER.info('Starting application')
 
 if os.environ.get('VCAP_SERVICES'):
    if DEBUG_MODE:
@@ -86,6 +95,9 @@ def do_analyse(text, return_raw = False):
     return answer
   
 def print_mailboxestable():
+  start = timer()
+  LOGGER.debug('Creating mailbox table')
+
   mailboxes = get_mailboxes()
   text = '<html><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">' 
   text += '<h1>MailBoxes</h1><br />'
@@ -124,6 +136,8 @@ def print_mailboxestable():
       # print '%s: %i <br />' % (emotion['name'], float(emotion['score']) * 100)
       
   text += '</tbody></table></p></html>'
+  end = timer()
+  LOGGER.debug('Completed in %.2f seconds' % (end - start) )
   
   return text
 

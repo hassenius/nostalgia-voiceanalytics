@@ -70,7 +70,7 @@ def get_mailboxes():
         # Get Tone Analysis
         tones = ['cheerfulness', 'negative', 'anger', 'analytical', 'confident', 'tentative', 'openness', 'agreeableness', 'conscientiousness']
         for tone in tones:
-          if obj_meta.get('x-object-meta-calldata-calldata-tone-%s' % tone):
+          if obj_meta.get('x-object-meta-calldata-tone-%s' % tone):
           #if obj_meta.get('x-object-meta-%s' % tone):
             vm_entry[tone] = obj_meta.get('x-object-meta-calldata-tone-%s' % tone)
             #vm_entry[tone] = obj_meta.get('x-object-meta-%s' % tone)

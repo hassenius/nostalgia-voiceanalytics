@@ -88,7 +88,7 @@ def get_mailboxes():
 def print_mailboxestable():
   start = timer()
   LOGGER.debug('Creating mailbox table')
-  tones = {'emotion': ['anger', 'cheerfulness', 'negative'], 'social': ['openness', 'agreeableness', 'conscientiousness'], 'writing': ['analytical', 'confident', 'tentative']}
+  tones = {'emotion': ['cheerfulness', 'anger', 'negative'], 'writing': ['analytical', 'confident', 'tentative'], 'social': ['openness', 'agreeableness', 'conscientiousness']}
   #tones = ['cheerfulness', 'negative', 'anger', 'analytical', 'confident', 'tentative', 'openness', 'agreeableness', 'conscientiousness']
   
   mailboxes = get_mailboxes()

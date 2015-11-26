@@ -12,6 +12,18 @@ applications:
   - CloudAMQP-voicemaildemo
   - AudioStorage2
   - SpeechToText
+- name: voicemail.analysetone
+  disk_quota: 256M
+  buildpack: python_buildpack
+  path: analyse_tone
+  command: python tone_analyser.py
+  memory: 64M
+  instances: 1
+  no-route: true
+  services:
+  - CloudAMQP-voicemaildemo
+  - AudioStorage2
+  - ToneAnalyzer
 - name: voicemail.send.tochechu
   disk_quota: 512M
   buildpack: python_buildpack

@@ -1,0 +1,5 @@
+pika
+requests
+wrapt
+python-keystoneclient
+python-swiftclient

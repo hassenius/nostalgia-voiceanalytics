@@ -47,7 +47,7 @@ def do_analyse(text, return_raw = False):
     answer = {}
     for tone in response.json()['children']:
       for spec in tone['children']:
-        answer[spec['name']] = str(int(float(spec['normalized_score']) * 100))
+        answer['calldata-tone-%s' % spec['name']] = str(int(float(spec['normalized_score']) * 100))
         
   return answer
   

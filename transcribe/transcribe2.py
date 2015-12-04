@@ -46,7 +46,8 @@ def transcribe_audio(data):
   LOGGER.info('')
   LOGGER.debug('Preparing to call watson API')
   #audiofile = str(sys.argv[1])
-  url = st_url + '/v1/recognize?continuous=true&model=en-US_NarrowbandModel'
+  # url = st_url + '/v1/recognize?continuous=true&model=en-US_NarrowbandModel'
+  url = st_url + '/v1/recognize?continuous=true&model=en-US_BroadbandModel'
   # url = st_url + '/v1/recognize?continuous=true&model=en-US_NarrowbandModel&max_alternatives=3'
   # url = 'https://stream.watsonplatform.net/speech-to-text/api/v1/recognize?continuous=true&model=en-US_NarrowbandModel'
   # data = open(audiofile, 'rb').read()

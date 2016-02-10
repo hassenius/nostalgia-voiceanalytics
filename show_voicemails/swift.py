@@ -29,6 +29,7 @@ if DEBUG_MODE:
   
 
 def get_token_and_endpoint(authurl, projectid, userid, password, region, endpoint_type='publicURL'):
+  
   data={"auth": {"tenantId": projectid, "passwordCredentials": {"userId":  userid, "password": password} } }
   r = requests.post(authurl + '/v2.0/tokens', data=json.dumps(data), headers={"Content-Type": "application/json"})
   if r.status_code != 200:
@@ -44,21 +45,17 @@ def get_token_and_endpoint(authurl, projectid, userid, password, region, endpoin
     
   return (token, os_endpoint)
 
-token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
-
 # Create a global object storage client
-os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+os_client = swift_client.Connection(key=password,authurl=auth_url + '/v3',auth_version='3',os_options={"project_id": project_id,"user_id": userid,"region_name": region})
+
 
 
 def head_object(container, obj):
-  global token, os_endpoint, os_client
+  global os_client
   try:
     meta = os_client.head_object(container, obj)
   except swift_client.ClientException as e:
-    # Try to re-authenticate
-    
-    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
-    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    # Sometimes there's a timeout and it's sufficient to try again
     meta = os_client.head_object(container, obj)
     
   return meta
@@ -69,9 +66,7 @@ def get_account():
   try:
     headers, containers = os_client.get_account()
   except swift_client.ClientException as e:
-    # Try to re-authenticate
-    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
-    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    # Sometimes there's a timeout and it's sufficient to try again
     headers, containers = os_client.get_account()
     
   return (headers, containers)
@@ -81,9 +76,7 @@ def head_container(name):
   try:
     headers = os_client.head_container(name)
   except swift_client.ClientException as e:
-    # Try to re-authenticate
-    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
-    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    # Sometimes there's a timeout and it's sufficient to try again
     headers = os_client.head_container(name)
     
   return headers
@@ -94,9 +87,7 @@ def get_container(name):
   try:
     headers, objects = os_client.get_container(name)
   except swift_client.ClientException as e:
-    # Try to re-authenticate
-    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
-    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    # Sometimes there's a timeout and it's sufficient to try again
     headers, objects = os_client.get_container(name)
     
   return (headers, objects)
@@ -119,9 +110,7 @@ def add_dict_to_object_metadata(container, obj, new_meta_dict):
   try:
     os_client.post_object(container, obj, new_headers)
   except swift_client.ClientException as e:
-    # Try to re-authenticate
-    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
-    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    # Sometimes there's a timeout and it's sufficient to try again
     os_client.post_object(container, obj, new_headers)
 
   return True    
@@ -151,9 +140,7 @@ def add_object_metadata(container, obj, existing_headers, meta_key, meta_value):
   try:
     os_client.post_object(container, obj, new_headers)
   except swift_client.ClientException as e:
-    # Try to re-authenticate
-    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
-    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    # Sometimes there's a timeout and it's sufficient to try again
     os_client.post_object(container, obj, new_headers)
 
   return True
@@ -165,9 +152,7 @@ def get_object(container, obj):
   try:
     headers, content = os_client.get_object(container, obj)
   except swift_client.ClientException as e:
-    # Try to re-authenticate
-    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
-    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    # Sometimes there's a timeout and it's sufficient to try again
     headers, content = os_client.get_object(container, obj)
   return (headers, content)
   
@@ -176,9 +161,7 @@ def delete_object(container, obj):
   try:
     os_client.delete_object(container, obj)
   except swift_client.ClientException as e:
-    # Try to re-authenticate
-    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
-    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    # Sometimes there's a timeout and it's sufficient to try again
     os_client.delete_object(container, obj)
 
 def set_tempurl_key():
@@ -188,9 +171,7 @@ def set_tempurl_key():
   try:
     os_client.post_account(container, obj)
   except swift_client.ClientException as e:
-    # Try to re-authenticate
-    token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
-    os_client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+    # Sometimes there's a timeout and it's sufficient to try again
     os_client.delete_object(container, obj)
   
   

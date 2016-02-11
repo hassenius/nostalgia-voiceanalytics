@@ -55,10 +55,8 @@ def get_token_and_endpoint(authurl, projectid, userid, password, region, endpoin
     
   return (token, os_endpoint)
 
-token, endpoint = get_token_and_endpoint(auth_url, project_id, userid, password, region)
-
-# Create a global object storage client
-client = swift_client.Connection(preauthurl=endpoint, preauthtoken=token)
+# Create client
+client = swift_client.Connection(key=password,authurl=auth_url + '/v3',auth_version='3',os_options={"project_id": project_id,"user_id": userid,"region_name": region})
 
 # Setup input
 audiofile = str(sys.argv[1])

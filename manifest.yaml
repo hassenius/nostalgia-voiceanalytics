@@ -58,8 +58,27 @@ applications:
   disk_quota: 512M
   buildpack: python_buildpack
   path: show_voicemails
-  command: python show_tone.py
+  command: ./startwithrelic.sh python show_tone.py
   memory: 64M
   instances: 2
   services:
   - AudioStorage2
+  - New Relic-
+- name: monverify
+  disk_quota: 128M
+  buildpack: python_buildpack
+  path: monitoring_verification
+  command: python verify_monitoring.py
+  memory: 32M
+  instances: 1
+- name: voicemail.show.highlow
+  disk_quota: 128M
+  buildpack: python_buildpack
+  path: show_voicemails_mixed_quality
+  command: python show_mixed.py
+  memory: 32M
+  instances: 1
+  services:
+  - AudioStorage2
+  - ToneAnalyzer
+  - SpeechToText

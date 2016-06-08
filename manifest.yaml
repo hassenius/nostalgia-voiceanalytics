@@ -1,40 +1,42 @@
 ---
+env:
+  NEW_RELIC_LICENSE_KEY: 588ecc24f5e146153a9d4b67ba42adc6f5c5d274
 applications:
 - name: voicemail.transcribe
   disk_quota: 512M
   buildpack: python_buildpack
   path: transcribe
-  command: python transcribe2.py
+  command: ./startwithrelic.sh python transcribe2.py
   memory: 96M
   instances: 1
   no-route: true
   services:
-  - CloudAMQP-voicemaildemo
-  - AudioStorage2
+  - CloudAMQP-jz
+  - object-storage
   - SpeechToText
 - name: voicemail.analysetone
   disk_quota: 256M
   buildpack: python_buildpack
   path: analyse_tone
-  command: python tone_analyser.py
+  command:  ./startwithrelic.sh python tone_analyser.py
   memory: 64M
   instances: 1
   no-route: true
   services:
-  - CloudAMQP-voicemaildemo
-  - AudioStorage2
+  - CloudAMQP-jz
+  - object-storage
   - ToneAnalyzer
 - name: voicemail.send.tochechu
   disk_quota: 512M
   buildpack: python_buildpack
   path: send_to_chechu
-  command: python send_to_chechu.py
+  command: ./startwithrelic.sh python send_to_chechu.py
   memory: 64M
   instances: 1
   no-route: true
   services:
-  - CloudAMQP-voicemaildemo
-  - AudioStorage2
+  - CloudAMQP-jz
+  - object-storage
 - name: voicemail.show.all
   disk_quota: 512M
   buildpack: python_buildpack

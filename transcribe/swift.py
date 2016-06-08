@@ -23,14 +23,15 @@ if os.environ.get('VCAP_SERVICES'):
       if service['name'] == 'object-storage':
         os_creds = service['credentials']
   
-  if os_creds:
+
+  if not os_creds:
+    exit("No object storage credentials")
+  else:
     userid      =   str( os_creds['userId']   )
     password    =   str( os_creds['password'] )
     auth_url    =   str( os_creds['auth_url'] )
     project_id  =   str( os_creds['projectId'])
     region      =   str( os_creds['region']   )
-  else:
-    exit("No object storage credentials")
 
 else:
   exit("No object storage credentials")

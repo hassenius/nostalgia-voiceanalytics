@@ -75,6 +75,7 @@ for i in range(0,100):
     break
 channel = connection.channel()
 channel.exchange_declare(exchange=EXCHANGE)
+channel.queue_declare(QUEUE)
 
 #result = channel.queue_declare(QUEUE)
 #queue_name = result.method.queue

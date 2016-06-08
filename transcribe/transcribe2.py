@@ -22,7 +22,7 @@ WORKER_NAME='transcribe2.py'
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
 LOGGER = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
+logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 
 LOGGER.info('Starting application')
 
@@ -74,7 +74,8 @@ for i in range(0,100):
 channel = connection.channel()
 channel.exchange_declare(exchange=EXCHANGE)
 
-#result = channel.queue_declare(QUEUE)
+#result = 
+channel.queue_declare(QUEUE)
 #queue_name = result.method.queue
 channel.queue_bind(exchange=EXCHANGE,queue=QUEUE,routing_key=ROUTING_KEY)
 

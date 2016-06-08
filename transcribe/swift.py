@@ -14,13 +14,23 @@ except ImportError:
 if os.environ.get('VCAP_SERVICES'):
   if DEBUG_MODE:
     print 'Getting Object Storage Credentials'
-  vcap_services = os.environ.get('VCAP_SERVICES')
-  decoded = json.loads(vcap_services)['Object-Storage'][0]
-  userid = str(decoded['credentials']['userId'])
-  password = str(decoded['credentials']['password'])
-  auth_url = str(decoded['credentials']['auth_url'])
-  project_id = str(decoded['credentials']['projectId'])
-  region = str(decoded['credentials']['region'])
+  
+  services = json.loads(os.environ.get('VCAP_SERVICES'))
+  if 'Object-Storage' in services:
+    os_creds = services['Object-Storage'][0]['credentials']
+  elif 'user-provided' in services:
+    for service in services['user-provided']:
+      if service['name'] == 'object-storage':
+        os_creds = service['credentials']
+  
+  if not os_creds:
+    exit("No object storage credentials")
+  else:
+    userid      =   str( os_creds['userId']   )
+    password    =   str( os_creds['password'] )
+    auth_url    =   str( os_creds['auth_url'] )
+    project_id  =   str( os_creds['projectId'])
+    region      =   str( os_creds['region']   )
 
 else:
   exit("No object storage credentials")

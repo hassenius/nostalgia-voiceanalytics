@@ -43,6 +43,14 @@ parameters = pika.ConnectionParameters(rhost,
 #   st_username = str(decoded['credentials']['username'])
 #   st_password = str(decoded['credentials']['password'])
 
+decoded = json.loads(os.environ.get('SPEECH_TO_TEXT'))
+st_url = str(decoded['credentials']['url'])
+st_username = str(decoded['credentials']['username'])
+st_password = str(decoded['credentials']['password'])
+
+
+
+
 #else:
 #  exit("No credentials")
 

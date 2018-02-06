@@ -23,21 +23,24 @@ logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 
 LOGGER.info('Starting application')
 
-if os.environ.get('VCAP_SERVICES'):
-   vcap_services = os.environ.get('VCAP_SERVICES')
-   
-   # Tone Analyzer Credentials
-   decoded = json.loads(vcap_services)['tone_analyzer'][0]
-   ta_url = str(decoded['credentials']['url'])
-   ta_username = str(decoded['credentials']['username'])
-   ta_password = str(decoded['credentials']['password'])
-   
-    # MQ Credentials
-   decoded = json.loads(vcap_services)['cloudamqp'][0]
-   mq_url = str(decoded['credentials']['uri'])
-   
-else:
-  exit("No credentials")
+# Get RabbitMQ details
+rabbitmqsvc = 'rabbitmq-rabbitmq'
+ruser = 'user'
+rpass = os.environ.get('RABBIT_PASS')
+rport = os.environ.get(rabbitmqsvc.upper().replace("-", "_") + '_SERVICE_PORT_AMQP')
+rhost = rabbitmqsvc # We'll use kubedns to resolve the IP address of the service
+rcredentials = pika.PlainCredentials(ruser, rpass)
+parameters = pika.ConnectionParameters(rhost,
+                                       rport,
+                                       '/',
+                                       rcredentials)
+
+# Get Tone Analyzer details
+decoded = json.loads(os.environ.get('TONE_ANALYZER'))
+ta_url = str(decoded['url'])
+ta_username = str(decoded['username'])
+ta_password = str(decoded['password'])
+
 
 def do_analyse(text, return_raw = False):
   response = requests.post(url=ta_url + '/v1/tone', auth=HTTPBasicAuth(ta_username, ta_password), data=json.dumps({"scorecard":"email","text":text}), headers={"content-type": "application/json"})
@@ -48,12 +51,12 @@ def do_analyse(text, return_raw = False):
     for tone in response.json()['children']:
       for spec in tone['children']:
         answer['calldata-tone-%s' % spec['name']] = str(int(float(spec['normalized_score']) * 100))
-        
+
   return answer
-  
+
 def callback(ch, method, properties, body):
   LOGGER.info('Received message: %s' % body)
-  
+
   # Received a new message, where the body is a json string with container and filename
   file_details = json.loads(body)
   container = file_details['container']
@@ -68,7 +71,7 @@ def callback(ch, method, properties, body):
 ## Create a connection to Message Queue
 for i in range(0,100):
     try:
-      connection = pika.BlockingConnection(pika.URLParameters(mq_url))
+      connection = pika.BlockingConnection(parameters)
     except pika.exceptions.ConnectionClosed:
       print "Attempt %i failedConnection closed, trying again" % i
       continue
@@ -83,7 +86,7 @@ channel.queue_bind(exchange=EXCHANGE,queue=QUEUE)
 
 print 'Waiting for messages. To exit press CTRL+C'
 
-  
+
 channel.basic_consume(callback,
                       queue=QUEUE,
                       no_ack=True,
@@ -93,5 +96,5 @@ try:
     channel.start_consuming()
 except KeyboardInterrupt:
     channel.stop_consuming()
-    
+
 connection.close()

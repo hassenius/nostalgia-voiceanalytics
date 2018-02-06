@@ -30,7 +30,7 @@ LOGGER.info('Starting application')
 rabbitmqsvc = 'rabbitmq-rabbitmq'
 ruser = 'user'
 rpass = os.environ.get('RABBIT_PASS')
-rport = os.environ.get(rabbitmqsvc.upper() + '_SERVICE_PORT_AMQP')
+rport = os.environ.get(rabbitmqsvc.upper().replace("-", "_") + '_SERVICE_PORT_AMQP')
 rhost = rabbitmqsvc # We'll use kubedns to resolve the IP address of the service
 rcredentials = pika.PlainCredentials(ruser, rpass)
 parameters = pika.ConnectionParameters(rhost,
@@ -44,9 +44,9 @@ parameters = pika.ConnectionParameters(rhost,
 #   st_password = str(decoded['credentials']['password'])
 
 decoded = json.loads(os.environ.get('SPEECH_TO_TEXT'))
-st_url = str(decoded['credentials']['url'])
-st_username = str(decoded['credentials']['username'])
-st_password = str(decoded['credentials']['password'])
+st_url = str(decoded['url'])
+st_username = str(decoded['username'])
+st_password = str(decoded['password'])
 
 
 

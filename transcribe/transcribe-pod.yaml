@@ -1,15 +1,15 @@
 apiVersion: "v1"
 kind: Pod
 metadata:
-  name: analysetone
+  name: transcribe
   labels:
-    name: analysetone
+    name: transcribe
     app: voicemail
 spec:
   containers:
     - name: transcribe
-      image: mycluster.icp:8500/voicemail/analysetone:0.0.1
-      command: ["sh", "-c", "until nslookup myservice; do echo waiting for myservice; sleep 10s; done;"]
+      image: mycluster.icp:8500/voicemail/transcribe:0.0.5
+      # command: ["sh", "-c", "until nslookup myservice; do echo waiting for myservice; sleep 10s; done;"]
       env:
         - name: RABBIT_PASS
           valueFrom:

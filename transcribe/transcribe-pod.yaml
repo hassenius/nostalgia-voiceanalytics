@@ -1,0 +1,28 @@
+apiVersion: "v1"
+kind: Pod
+metadata:
+  name: transcribe
+  labels:
+    name: transcribe
+    app: voicemail
+spec:
+  containers:
+    - name: transcribe
+      image: mycluster.icp:8500/voicemail/transcribe:0.0.2
+      command: ["sh", "-c", "until nslookup myservice; do echo waiting for myservice; sleep 10s; done;"]
+      env:
+        - name: RABBIT_PASS
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-rabbitmq
+              key: rabbitmq-password
+        - name: OBJECT_STORAGE
+          valueFrom:
+            secretKeyRef:
+              name: object-storage2
+              key: binding
+        - name: SPEECH_TO_TEXT
+          valueFrom:
+            secretKeyRef:
+              name: speech-to-text
+              key: binding

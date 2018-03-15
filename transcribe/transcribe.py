@@ -11,6 +11,9 @@ import swiftclient.client as swift_client
 DEBUG_MODE=True
 execfile('swift.py')
 
+# Servicename for voicemail storage
+voicemailstore = 'voicemailstore'
+
 EXCHANGE = 'audio_demo'
 QUEUE = 'audiofiles'
 ROUTING_KEY = 'audiofiles'
@@ -27,7 +30,7 @@ logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 LOGGER.info('Starting application')
 
 # Get RabbitMQ details
-rabbitmqsvc = 'rabbitmq-rabbitmq'
+rabbitmqsvc = 'rabbitmq'
 ruser = 'user'
 rpass = os.environ.get('RABBIT_PASS')
 rport = os.environ.get(rabbitmqsvc.upper().replace("-", "_") + '_SERVICE_PORT_AMQP')
@@ -38,21 +41,10 @@ parameters = pika.ConnectionParameters(rhost,
                                        '/',
                                        rcredentials)
 
-#   decoded = json.loads(vcap_services)['speech_to_text'][0]
-#   st_url = str(decoded['credentials']['url'])
-#   st_username = str(decoded['credentials']['username'])
-#   st_password = str(decoded['credentials']['password'])
-
 decoded = json.loads(os.environ.get('SPEECH_TO_TEXT'))
 st_url = str(decoded['url'])
 st_username = str(decoded['username'])
 st_password = str(decoded['password'])
-
-
-
-
-#else:
-#  exit("No credentials")
 
 
 def transcribe_audio(data):
@@ -105,7 +97,8 @@ def callback(ch, method, properties, body):
 
   # load the file
   LOGGER.debug('Calling get_object for container %s and object %s' % (container, obj) )
-  headers, audio = get_object(container, obj)
+  # headers, audio = get_object(container, obj)
+  audio = requests.get('http://%s/api/v1/mailboxes/%s/voicemails/%s/audio' % (voicemailstore, container, obj))
 
   # Transcribe the audio
   LOGGER.debug('Calling transcribe function')
@@ -114,7 +107,9 @@ def callback(ch, method, properties, body):
 
   # Update the metadata for the object with the transcribed text
   LOGGER.debug('Calling add_object_meta function to update calldata-transcript metadata')
-  add_object_metadata(container, obj, headers, 'calldata-transcript', text)
+  data = {"calldata-transcript": text}
+  requests.post('http://%s/api/v1/mailboxes/%s/voicemails/%s/audio' % (voicemailstore, container, obj), headers={'content-type':'application/json'}, data=data)
+  #add_object_metadata(container, obj, headers, 'calldata-transcript', text)
 
   # Build the message body
   file_details['call_data']['transcript'] = text

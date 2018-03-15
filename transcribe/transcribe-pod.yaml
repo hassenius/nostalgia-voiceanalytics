@@ -8,18 +8,17 @@ metadata:
 spec:
   containers:
     - name: transcribe
-      image: mycluster.icp:8500/voicemail/transcribe:0.0.5
-      # command: ["sh", "-c", "until nslookup myservice; do echo waiting for myservice; sleep 10s; done;"]
+      image: mycluster.icp:8500/voicemail/transcribe:0.1
       env:
         - name: RABBIT_PASS
           valueFrom:
             secretKeyRef:
-              name: rabbitmq-rabbitmq
+              name: rabbitmq
               key: rabbitmq-password
         - name: OBJECT_STORAGE
           valueFrom:
             secretKeyRef:
-              name: object-storage2
+              name: object-storage
               key: binding
         - name: SPEECH_TO_TEXT
           valueFrom:

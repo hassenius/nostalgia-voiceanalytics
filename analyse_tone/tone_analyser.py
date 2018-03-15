@@ -6,7 +6,7 @@ import logging
 import pika
 import requests
 from requests.auth import HTTPBasicAuth
-
+from watson_developer_cloud import ToneAnalyzerV3
 
 # Load the common swift library
 execfile('swift.py')
@@ -41,6 +41,12 @@ ta_url = str(decoded['url'])
 ta_username = str(decoded['username'])
 ta_password = str(decoded['password'])
 
+tone_analyzer = ToneAnalyzerV3(
+  #version='2017-09-21',
+  version='2016-05-19',
+  username=ta_username,
+  password=ta_password
+)
 
 def do_analyse(text, return_raw = False):
   response = requests.post(url=ta_url + '/v1/tone', auth=HTTPBasicAuth(ta_username, ta_password), data=json.dumps({"scorecard":"email","text":text}), headers={"content-type": "application/json"})

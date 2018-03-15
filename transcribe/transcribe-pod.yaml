@@ -15,11 +15,6 @@ spec:
             secretKeyRef:
               name: rabbitmq
               key: rabbitmq-password
-        - name: OBJECT_STORAGE
-          valueFrom:
-            secretKeyRef:
-              name: object-storage
-              key: binding
         - name: SPEECH_TO_TEXT
           valueFrom:
             secretKeyRef:

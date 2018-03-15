@@ -9,7 +9,6 @@ from requests.auth import HTTPBasicAuth
 import swiftclient.client as swift_client
 
 DEBUG_MODE=True
-execfile('swift.py')
 
 # Servicename for voicemail storage
 voicemailstore = 'voicemailstore'
@@ -97,7 +96,6 @@ def callback(ch, method, properties, body):
 
   # load the file
   LOGGER.debug('Calling get_object for container %s and object %s' % (container, obj) )
-  # headers, audio = get_object(container, obj)
   audio = requests.get('http://%s/api/v1/mailboxes/%s/voicemails/%s/audio' % (voicemailstore, container, obj))
 
   # Transcribe the audio
@@ -109,7 +107,6 @@ def callback(ch, method, properties, body):
   LOGGER.debug('Calling add_object_meta function to update calldata-transcript metadata')
   data = {"calldata-transcript": text}
   requests.post('http://%s/api/v1/mailboxes/%s/voicemails/%s/audio' % (voicemailstore, container, obj), headers={'content-type':'application/json'}, data=data)
-  #add_object_metadata(container, obj, headers, 'calldata-transcript', text)
 
   # Build the message body
   file_details['call_data']['transcript'] = text

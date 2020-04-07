@@ -5,10 +5,11 @@ metadata:
   labels:
     name: transcribe
     app: voicemail
+    env: demo
 spec:
   containers:
     - name: transcribe
-      image: mycluster.icp:8500/voicemail/transcribe:0.1
+      image: mycluster.icp:8500/voicemail2/transcribe:0.3
       env:
         - name: RABBIT_PASS
           valueFrom:

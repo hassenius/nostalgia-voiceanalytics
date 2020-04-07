@@ -22,22 +22,37 @@ try:
 except ImportError:
     import swift.common.client as swift_client
 
-if os.environ.get('VCAP_SERVICES'):
-  if DEBUG_MODE:
-    print 'Getting Object Storage Credentials'
-  vcap_services = os.environ.get('VCAP_SERVICES')
-  decoded = json.loads(vcap_services)['Object-Storage'][0]
-  userid = str(decoded['credentials']['userId'])
-  password = str(decoded['credentials']['password'])
-  auth_url = str(decoded['credentials']['auth_url'])
-  project_id = str(decoded['credentials']['projectId'])
-  region = str(decoded['credentials']['region'])
+#if os.environ.get('VCAP_SERVICES'):
+#  if DEBUG_MODE:
+#    print 'Getting Object Storage Credentials'
+#  vcap_services = os.environ.get('VCAP_SERVICES')
+#decoded = json.loads(vcap_services)['Object-Storage'][0]
 
-else:
-  exit("No object storage credentials")
-if DEBUG_MODE:
-  print '...finished'
-  
+# Get Object Storage credentials
+os_creds = json.loads(os.environ.get('OBJECT_STORAGE'))
+userid      =   str( os_creds['userId']   )
+password    =   str( os_creds['password'] )
+auth_url    =   str( os_creds['auth_url'] )
+project_id  =   str( os_creds['projectId'])
+region      =   str( os_creds['region']   )
+
+
+# Get RabbitMQ details
+rabbitmqsvc = 'rabbitmq-rabbitmq'
+ruser = 'user'
+rpass = os.environ.get('RABBIT_PASS')
+rport = os.environ.get(rabbitmqsvc.upper().replace("-", "_") + '_SERVICE_PORT_AMQP')
+rhost = rabbitmqsvc # We'll use kubedns to resolve the IP address of the service
+#rcredentials = pika.PlainCredentials(ruser, rpass)
+#parameters = pika.ConnectionParameters(rhost, rport, '/', rcredentials)
+rabbiturl = 'amqp://%s:%s@%s:%s/%s' % (ruser, rpass, rhost, rport, '%2F')
+
+
+#else:
+#  exit("No object storage credentials")
+#if DEBUG_MODE:
+#  print '...finished'
+
 
 def get_token_and_endpoint(authurl, projectid, userid, password, region, endpoint_type='publicURL'):
   data={"auth": {"tenantId": projectid, "passwordCredentials": {"userId":  userid, "password": password} } }
@@ -45,14 +60,14 @@ def get_token_and_endpoint(authurl, projectid, userid, password, region, endpoin
   if r.status_code != 200:
     print 'Something went wrong while getting token'
     print 'Status code: %s and status text: " %s "'  % (r.status_code, r.text)
-  
+
   token = r.json()['access']['token']['id']
   for service in r.json()['access']['serviceCatalog']:
     if service['type'] == 'object-store':
       for endpoint in service['endpoints']:
         if endpoint['region'] == region:
           os_endpoint = endpoint[endpoint_type]
-    
+
   return (token, os_endpoint)
 
 # Create client
@@ -88,7 +103,7 @@ payload = {
 
 
 # Post the message
-with rabbitpy.Connection('amqp://eovnztng:bPbtTaxd8KvFI5JQVzf8Jc6wtbe662FS@white-swan.rmq.cloudamqp.com/eovnztng') as conn:
+with rabbitpy.Connection(rabbiturl) as conn:
     with conn.channel() as channel:
 
         # Create the exchange

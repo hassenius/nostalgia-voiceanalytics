@@ -183,6 +183,21 @@ def put_object(container, obj, file_data, headers):
     etag = os_client.put_object(container, obj, file_data, headers=headers)
   return etag
 
+def put_container(container):
+  global token, os_endpoint, os_client
+  resp = {}
+  try:
+    os_client.put_container(container, response_dict = resp)
+  except swift_client.ClientException as e:
+    # Sometimes there's a timeout and it's sufficient to try again
+    os_client.put_container(container, response_dict = resp)
+
+  if 'status' in resp:
+    if resp['status'] == (201 or 202):
+      return True
+
+  return False
+
 
 def set_tempurl_key():
   global token, os_endpoint, os_client
